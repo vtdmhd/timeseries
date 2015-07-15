@@ -11,8 +11,8 @@ from scipy.signal import argrelextrema
 from rpy2.robjects import pandas2ri
 pandas2ri.activate()
 
-from timeseries_analysis.smoothing import *
-from timeseries_analysis.r_packages import *
+from smoothing import *
+from r_packages import *
 
 
 class TimeSeries:
