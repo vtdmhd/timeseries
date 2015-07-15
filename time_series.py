@@ -108,13 +108,13 @@ class TimeSeries:
         harm_data = np.vstack(np.array(periods))
         centroids, _ = kmeans(harm_data, self.num_comp)
         idx, _ = vq(harm_data, centroids)
-        harm_numbers = []  # list of lists with number of harmonics
+        # list of lists with number of harmonics
+        harm_numbers = [[]] * self.num_comp
         # list of lists with periods for corresponding harmonics
-        harm_periods = []
+        harm_periods = [[]] * self.num_comp
         for i in range(self.num_comp):
-            harm_numbers.append([])
-            harm_periods.append([])
             periods_copy = periods.copy()
+
             for item in harm_data[idx == i]:
                 index = periods_copy.index(item)
                 harm_numbers[i].append(index + self.start_harm)
@@ -123,14 +123,14 @@ class TimeSeries:
 
         # sort main periods and components of period
         centroids_list = [item[0] for item in centroids]
-        for i in range(self.num_comp):
-            max_centroid_index = centroids_list.index(max(centroids_list))
-            self.periods[i + 1] = centroids_list[max_centroid_index]
-            self.period_harmonics[i + 1] = harm_numbers[max_centroid_index]
-            self.deviations[
-                i + 1] = np.std(np.array(harm_periods[max_centroid_index]))
-            centroids_list[max_centroid_index] = 0
-        return self.periods, self.period_harmonics, self.deviations
+        centroids_skeys = sorted(range(len(centroids_list) key=centroids_list.__getitem__, reverse=True)
+
+        for k in enumerate(centroids_skeys):
+            self._periods(k + 1)=centroids_list[k]
+            self._period_harmonics[k + 1]=harm_numbers[k]
+            self._deviations[k + 1]=np.std(np.array(harm_periods[k]))
+            
+        return self._periods, self._period_harmonics, self._deviations
 
     def get_main_periods(self, order):
         '''
