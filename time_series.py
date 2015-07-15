@@ -1,8 +1,6 @@
-from datetime import date
 import math
 
 import numpy as np
-from pandas.io.data import DataFrame, DataReader
 import pandas as pd
 
 import scipy
@@ -42,10 +40,37 @@ class TimeSeries:
         self.start_harm = start_harm
         self.ssa = rssa.ssa(
             pd.DataFrame(data=list(self.raw_data), index=list(self.raw_data.index)))
-        self.periods = {}  # will contain main periods
+        self._periods = {}  # will contain main periods
         # will contain dict of list of harmonics for every corresponding period
-        self.period_harmonics = {}
-        self.deviations = {}  # will contain standard deviation
+        self._period_harmonics = {}
+        self._deviations = {}  # will contain standard deviation
+
+    @property
+    def deviations(self):
+        '''
+        Return std.deviations. Automatically call comp_main_periods() if needed.
+        '''
+        if not self._deviations:
+            self.comp_main_periods()
+        return self._deviations
+
+    @property
+    def periods(self):
+        '''
+        Return periods. Automatically call comp_main_periods() if needed.
+        '''
+        if not self._periods:
+            self.comp_main_periods()
+        return self._periods
+
+    @property
+    def period_harmonics(self):
+        '''
+        Return self._period_harmonics  Automatically call comp_main_periods() if needed.
+        '''
+        if not self._periods:
+            self.comp_main_periods()
+        return self._periods
 
     def get_raw_data(self):
         '''
@@ -60,19 +85,16 @@ class TimeSeries:
         :return: list of floats
         '''
         periods = []
+
         for i in range(self.start_harm, self.num_harm + 1):
             r = rssa.reconstruct(self.ssa, base.list(base.c(i)))
-            row = r[0][0]
-            signal = np.array(row)
+            signal = np.array(r[0][0])
 
             fft = abs(scipy.fft(signal))
             freqs = scipy.fftpack.fftfreq(signal.size)
 
-            max_freq = abs(freqs[list(fft).index(max(fft))])
-            if max_freq != 0:
-                periods.append(1 / max_freq)
-            else:
-                periods.append(float('inf'))
+            max_freq = abs(freqs[np.argmax(fft)])
+            periods.append(1 / max_freq if max_freq != 0 else float('inf'))
         return periods
 
     def comp_main_periods(self):
@@ -116,12 +138,7 @@ class TimeSeries:
         :param order: tuple of int
         :return: dict with component number as keys and periods as values
         '''
-        if not self.periods and not self.period_harmonics:
-            self.comp_main_periods()
-        main_periods = {}
-        for item in order:
-            main_periods[item] = self.periods[item]
-        return main_periods
+        return {o: self.periods[o] for o in order}
 
     def get_deviations(self, order):
         '''
@@ -129,12 +146,8 @@ class TimeSeries:
         :param order: tuple of int
         :return: dict with component number as keys and standard deviations as values
         '''
-        if not self.deviations:
-            self.comp_main_periods()
-        deviations = {}
-        for item in order:
-            deviations[item] = self.deviations[item]
-        return self.deviations
+        return {o: self.deviations[o] for o in order}
+
 
     def get_smooth(self, comp_num):
         '''

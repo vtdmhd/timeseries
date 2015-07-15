@@ -117,15 +117,15 @@ def smooth(x, window_len=11, window='hanning'):
         return x
 
     if not window in ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']:
-        raise ValueError(
-            "Window is on of 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'")
+        raise ValueError("Window should be one of 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'")
 
-    s = numpy.r_[x[window_len - 1:0:-1], x, x[-1:-window_len:-1]]
-    # print(len(s))
-    if window == 'flat':  # moving average
-        w = numpy.ones(window_len, 'd')
+
+    s=numpy.r_[x[window_len-1:0:-1],x,x[-1:-window_len:-1]]
+    #print(len(s))
+    if window == 'flat': #moving average
+        w=numpy.ones(window_len,'d')
     else:
-        w = eval('numpy.' + window + '(window_len)')
+        w=getattr(numpy,window)(window_len)
 
-    y = numpy.convolve(w / w.sum(), s, mode='valid')
+    y=numpy.convolve(w/w.sum(),s,mode='valid')
     return y
