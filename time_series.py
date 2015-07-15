@@ -7,7 +7,7 @@ import pandas as pd
 
 import scipy
 import scipy.fftpack
-from scipy.cluster.vq import kmeans,vq
+from scipy.cluster.vq import kmeans, vq
 from scipy.signal import argrelextrema
 
 from rpy2.robjects import pandas2ri
@@ -16,10 +16,13 @@ pandas2ri.activate()
 from timeseries_analysis.smoothing import *
 from timeseries_analysis.r_packages import *
 
+
 class TimeSeries:
+
     '''
     Class for analyzing of time series. Compute harmonic components, smoothed and reconstructed data, extremes.
     '''
+
     def __init__(self, data_list, dates, num_comp=3, num_harm=10, start_harm=2):
         '''
         Initialize instance of class with data list and corresponding date list.
@@ -37,9 +40,11 @@ class TimeSeries:
         self.num_comp = num_comp
         self.num_harm = num_harm
         self.start_harm = start_harm
-        self.ssa = rssa.ssa(pd.DataFrame(data=list(self.raw_data), index=list(self.raw_data.index)))
+        self.ssa = rssa.ssa(
+            pd.DataFrame(data=list(self.raw_data), index=list(self.raw_data.index)))
         self.periods = {}  # will contain main periods
-        self.period_harmonics = {}  # will contain dict of list of harmonics for every corresponding period
+        # will contain dict of list of harmonics for every corresponding period
+        self.period_harmonics = {}
         self.deviations = {}  # will contain standard deviation
 
     def get_raw_data(self):
@@ -55,7 +60,7 @@ class TimeSeries:
         :return: list of floats
         '''
         periods = []
-        for i in range(self.start_harm, self.num_harm+1):
+        for i in range(self.start_harm, self.num_harm + 1):
             r = rssa.reconstruct(self.ssa, base.list(base.c(i)))
             row = r[0][0]
             signal = np.array(row)
@@ -65,7 +70,7 @@ class TimeSeries:
 
             max_freq = abs(freqs[list(fft).index(max(fft))])
             if max_freq != 0:
-                periods.append(1/max_freq)
+                periods.append(1 / max_freq)
             else:
                 periods.append(float('inf'))
         return periods
@@ -82,14 +87,15 @@ class TimeSeries:
         centroids, _ = kmeans(harm_data, self.num_comp)
         idx, _ = vq(harm_data, centroids)
         harm_numbers = []  # list of lists with number of harmonics
-        harm_periods = []  # list of lists with periods for corresponding harmonics
+        # list of lists with periods for corresponding harmonics
+        harm_periods = []
         for i in range(self.num_comp):
             harm_numbers.append([])
             harm_periods.append([])
             periods_copy = periods.copy()
-            for item in harm_data[idx==i]:
+            for item in harm_data[idx == i]:
                 index = periods_copy.index(item)
-                harm_numbers[i].append(index+self.start_harm)
+                harm_numbers[i].append(index + self.start_harm)
                 harm_periods[i].append(periods[index])
                 periods_copy[index] = 0
 
@@ -97,9 +103,10 @@ class TimeSeries:
         centroids_list = [item[0] for item in centroids]
         for i in range(self.num_comp):
             max_centroid_index = centroids_list.index(max(centroids_list))
-            self.periods[i+1] = centroids_list[max_centroid_index]
-            self.period_harmonics[i+1] = harm_numbers[max_centroid_index]
-            self.deviations[i+1] = np.std(np.array(harm_periods[max_centroid_index]))
+            self.periods[i + 1] = centroids_list[max_centroid_index]
+            self.period_harmonics[i + 1] = harm_numbers[max_centroid_index]
+            self.deviations[
+                i + 1] = np.std(np.array(harm_periods[max_centroid_index]))
             centroids_list[max_centroid_index] = 0
         return self.periods, self.period_harmonics, self.deviations
 
@@ -147,12 +154,13 @@ class TimeSeries:
         :param comp_num: int, component number
         :return: reconstructed timeseries in pandas dataframe format
         '''
-        comp_list = [1,]  # include trend component to harmonic components for reconstruction
+        comp_list = [
+            1, ]  # include trend component to harmonic components for reconstruction
         for i in range(comp_num):
-            comp_list = comp_list + self.period_harmonics[i+1]
+            comp_list = comp_list + self.period_harmonics[i + 1]
         r = rssa.reconstruct(self.ssa, base.list(base.c(*comp_list)))
         row = r[0][0]
-        row_frame = pd.DataFrame(data={'Value':row}, index=self.dates)
+        row_frame = pd.DataFrame(data={'Value': row}, index=self.dates)
         reconstructed = row_frame['Value']
         return reconstructed
 
@@ -165,7 +173,7 @@ class TimeSeries:
         comp_list = self.period_harmonics[comp_num]
         r = rssa.reconstruct(self.ssa, base.list(base.c(*comp_list)))
         row = r[0][0]
-        row_frame = pd.DataFrame(data={'Value':row}, index=self.dates)
+        row_frame = pd.DataFrame(data={'Value': row}, index=self.dates)
         reconstructed = row_frame['Value']
         return reconstructed
 
@@ -178,7 +186,7 @@ class TimeSeries:
         :param golay order: int, polynomial order of savitzky_golay filter
         :return: tuple of dataframe
         '''
-        if golay_window%2 == 0:
+        if golay_window % 2 == 0:
             golay_window = golay_window + 1
         smooths = savitzky_golay(timeseries, golay_window, golay_order)
         # compute maximums
@@ -205,6 +213,6 @@ class TimeSeries:
             last_extreme = last_min
 
         days_delta = len(self.raw_data[self.raw_data.index > last_extreme[0]])
-        trend_rate = (current_point[1]-last_extreme[1])/days_delta
-        trend_angle = 10000*180*(math.atan(trend_rate))/math.pi
+        trend_rate = (current_point[1] - last_extreme[1]) / days_delta
+        trend_angle = 10000 * 180 * (math.atan(trend_rate)) / math.pi
         return extreme_type, trend_rate, trend_angle
